@@ -1,4 +1,4 @@
-package galoisfield
+package shamir
 
 import (
 	"errors"

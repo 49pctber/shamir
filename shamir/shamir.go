@@ -5,14 +5,13 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	gf "galois_field"
 	"math/rand/v2"
 )
 
 type Share struct {
-	id string         // id associated with a given secret
-	x  gf.GfElement   // x coordinate
-	y  []gf.GfElement // y coordinates
+	id string      // id associated with a given secret
+	x  GfElement   // x coordinate
+	y  []GfElement // y coordinates
 }
 
 func (share Share) String() string {
@@ -21,7 +20,7 @@ func (share Share) String() string {
 
 type Shamir struct {
 	id        string  // unique identifier to ensure shares were derived from same secret
-	field     gf.Gf2m // field over which to operate
+	field     Gf2m    // field over which to operate
 	threshold int     // number of shares needed to reconstruct message
 	shares    []Share // individual shares to distribute
 }
@@ -56,7 +55,7 @@ func NewShamirSecret(primitivePoly int, nshares int, threshold int, secret []byt
 	// initialize the data needed for Shamir's secret sharing scheme
 	shamir := &Shamir{
 		id:        base64.StdEncoding.EncodeToString(idbytes),
-		field:     gf.NewField(primitivePoly),
+		field:     NewField(primitivePoly),
 		threshold: threshold,
 		shares:    make([]Share, nshares),
 	}
@@ -64,21 +63,21 @@ func NewShamirSecret(primitivePoly int, nshares int, threshold int, secret []byt
 	// initialize each individual share
 	for i := range shamir.shares {
 		shamir.shares[i].id = shamir.id
-		shamir.shares[i].x = gf.GfElement(i + 1)
-		shamir.shares[i].y = make([]gf.GfElement, len(secret))
+		shamir.shares[i].x = GfElement(i + 1)
+		shamir.shares[i].y = make([]GfElement, len(secret))
 	}
 
 	// choose new polynomials for each byte in secret
 	for i := 0; i < len(secret); i++ {
 
 		// choose random polynomial
-		p := make([]gf.GfElement, threshold)
+		p := make([]GfElement, threshold)
 		for i := range p {
-			p[i] = gf.GfElement(rand.IntN(shamir.field.GetNelements()))
+			p[i] = GfElement(rand.IntN(shamir.field.GetNelements()))
 		}
 
 		// set constant term to be secret
-		p[0] = gf.GfElement(secret[i])
+		p[0] = GfElement(secret[i])
 
 		// compute value of polynomial for each of the shares
 		for _, share := range shamir.shares {
@@ -94,33 +93,33 @@ func RecoverSecret(primitivePoly int, shares []Share) ([]byte, error) {
 	// TODO: check that shares all have same id
 	// TODO: check that shares all have different x
 
-	field := gf.NewField(primitivePoly)
+	field := NewField(primitivePoly)
 	len_secret := len(shares[0].y)
 	n_shares := len(shares)
 
 	secret := make([]byte, len_secret)
 
-	x := make([]gf.GfElement, n_shares)
+	x := make([]GfElement, n_shares)
 	for s, share := range shares {
 		x[s] = share.x
 	}
 
 	for i := range len_secret {
-		y := make([]gf.GfElement, n_shares)
+		y := make([]GfElement, n_shares)
 		for s, share := range shares {
 			y[s] = share.y[i]
 		}
 
 		// compute L(0) by summing terms l_j(0)
-		L := gf.GfElement(0)
+		L := GfElement(0)
 
 		for j := range n_shares {
-			ell := gf.GfElement(1)
+			ell := GfElement(1)
 			for k := range n_shares {
 				if k == j {
 					continue
 				}
-				x, err := field.Divide(field.Subtract(gf.GfElement(0), x[k]), field.Subtract(x[j], x[k]))
+				x, err := field.Divide(field.Subtract(GfElement(0), x[k]), field.Subtract(x[j], x[k]))
 				if err != nil {
 					return nil, err
 				}

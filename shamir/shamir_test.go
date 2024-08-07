@@ -87,7 +87,7 @@ func TestShamir_2(t *testing.T) {
 		t.Fatal("you cheated somehow...you shouldn't be able to reconstruct the secret")
 	}
 
-	// reconstruct secret from shares
+	// reconstruct secret from minimum number of shares
 	recovered_secret, err = RecoverSecret(primitivePoly, shamir.shares[0:4])
 	if err != nil {
 		t.Fatal(err)
