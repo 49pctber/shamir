@@ -25,9 +25,20 @@ func (field Gf2m) GetNelements() int {
 	return field.n_elements
 }
 
-func NewField(m int, primitivePoly int) Gf2m {
+// computes the degree of a given polynomial
+func ComputeDegree(poly int) int {
+	m := 0
+	for poly > 1 {
+		poly >>= 1
+		m += 1
+	}
+	return m
+}
+
+func NewField(primitivePoly int) Gf2m {
 
 	const q = 2 // will only produce GF(2^m)
+	m := ComputeDegree(primitivePoly)
 
 	n_elements := 1
 	for i := 0; i < m; i++ {

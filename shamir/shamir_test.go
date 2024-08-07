@@ -1,28 +1,111 @@
 package shamir
 
 import (
-	"fmt"
+	"bytes"
 	"testing"
 )
 
 func TestShamir(t *testing.T) {
-	shamir, err := NewShamir(0b100011101, 5, 2, []byte("secret"))
+	// parameters
+	secret := []byte("This is a secret 🤫")
+	primitivePoly := 0x11d
+	nshares := 6
+	threshold := 2
+
+	// compute shares
+	shamir, err := NewShamirSecret(primitivePoly, nshares, threshold, secret)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(shamir)
+
+	// reconstruct secret from shares
+	recovered_secret, err := RecoverSecret(primitivePoly, shamir.shares[0:2])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check that everything went well
+	if !bytes.Equal(secret, recovered_secret) {
+		t.Fatalf("have %v, want %v", recovered_secret, secret)
+	}
+
+	// reconstruct secret from different shares
+	recovered_secret, err = RecoverSecret(primitivePoly, shamir.shares[2:4])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check that everything went well
+	if !bytes.Equal(secret, recovered_secret) {
+		t.Fatalf("have %v, want %v", recovered_secret, secret)
+	}
+
+	// reconstruct secret from different shares
+	recovered_secret, err = RecoverSecret(primitivePoly, shamir.shares[4:6])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check that everything went well
+	if !bytes.Equal(secret, recovered_secret) {
+		t.Fatalf("have %v, want %v", recovered_secret, secret)
+	}
 }
 
-func TestComputeDegree(t *testing.T) {
-	if have, want := ComputeDegree(0b1), 0; have != want {
-		t.Errorf("have %d, want %d", have, want)
+func TestShamir_2(t *testing.T) {
+	// parameters
+	secret := []byte("You just lost the game.")
+	primitivePoly := 0x11d
+	nshares := 6
+	threshold := 4
+
+	// compute shares
+	shamir, err := NewShamirSecret(primitivePoly, nshares, threshold, secret)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	if have, want := ComputeDegree(0b111), 2; have != want {
-		t.Errorf("have %d, want %d", have, want)
+	// should not be able to reconstruct secret from 2 shares
+	recovered_secret, err := RecoverSecret(primitivePoly, shamir.shares[0:2])
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	if have, want := ComputeDegree(0b100011101), 8; have != want {
-		t.Errorf("have %d, want %d", have, want)
+	// check that everything went well
+	if bytes.Equal(secret, recovered_secret) {
+		t.Fatal("you cheated somehow...you shouldn't be able to reconstruct the secret")
+	}
+
+	// should not be able to reconstruct secret from 2 shares
+	recovered_secret, err = RecoverSecret(primitivePoly, shamir.shares[0:3])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check that everything went well
+	if bytes.Equal(secret, recovered_secret) {
+		t.Fatal("you cheated somehow...you shouldn't be able to reconstruct the secret")
+	}
+
+	// reconstruct secret from shares
+	recovered_secret, err = RecoverSecret(primitivePoly, shamir.shares[0:4])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check that everything went well
+	if !bytes.Equal(secret, recovered_secret) {
+		t.Fatalf("have %v, want %v", recovered_secret, secret)
+	}
+
+	// reconstruct secret from all available shares
+	recovered_secret, err = RecoverSecret(primitivePoly, shamir.shares[0:6])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check that everything went well
+	if !bytes.Equal(secret, recovered_secret) {
+		t.Fatalf("have %v, want %v", recovered_secret, secret)
 	}
 }

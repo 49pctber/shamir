@@ -20,14 +20,16 @@ func (share Share) String() string {
 }
 
 type Shamir struct {
-	id     string  // unique identifier to ensure shares were derived from same secret
-	field  gf.Gf2m // field over which to operate
-	shares []Share // individual shares to distribute
+	id        string  // unique identifier to ensure shares were derived from same secret
+	field     gf.Gf2m // field over which to operate
+	threshold int     // number of shares needed to reconstruct message
+	shares    []Share // individual shares to distribute
 }
 
 func (shamir Shamir) String() string {
 	s := fmt.Sprintf("Secret %v\n", shamir.id)
 	s += fmt.Sprintf("  Field Parameters: %v\n", shamir.field)
+	s += fmt.Sprintf("  Threshold: %v\n", shamir.threshold)
 	s += "  Shares:\n"
 	for _, share := range shamir.shares {
 		s += fmt.Sprintf("    %v\n", share)
@@ -35,29 +37,15 @@ func (shamir Shamir) String() string {
 	return s
 }
 
-// computes the degree of a given polynomial
-func ComputeDegree(poly int) int {
-	m := 0
-	for poly > 1 {
-		poly >>= 1
-		m += 1
-	}
-	return m
-}
-
-func NewShamir(primitivePoly int, nshares int, threshold int, secret []byte) (*Shamir, error) {
+func NewShamirSecret(primitivePoly int, nshares int, threshold int, secret []byte) (*Shamir, error) {
 
 	// input validation
 	if threshold > nshares {
 		return nil, errors.New("threshold cannot exceed number of shares")
 	}
-
 	if (primitivePoly & 0b1) != 1 {
 		return nil, errors.New("supplied polynomial cannot be primitive")
 	}
-
-	// compute degree of primitive polynomial
-	m := ComputeDegree(primitivePoly)
 
 	// generate random ID for secret shares
 	idbytes := make([]byte, 15)
@@ -67,9 +55,10 @@ func NewShamir(primitivePoly int, nshares int, threshold int, secret []byte) (*S
 
 	// initialize the data needed for Shamir's secret sharing scheme
 	shamir := &Shamir{
-		id:     base64.StdEncoding.EncodeToString(idbytes),
-		field:  gf.NewField(m, primitivePoly),
-		shares: make([]Share, nshares),
+		id:        base64.StdEncoding.EncodeToString(idbytes),
+		field:     gf.NewField(primitivePoly),
+		threshold: threshold,
+		shares:    make([]Share, nshares),
 	}
 
 	// initialize each individual share
@@ -98,4 +87,50 @@ func NewShamir(primitivePoly int, nshares int, threshold int, secret []byte) (*S
 	}
 
 	return shamir, nil
+}
+
+func RecoverSecret(primitivePoly int, shares []Share) ([]byte, error) {
+
+	// TODO: check that shares all have same id
+	// TODO: check that shares all have different x
+
+	field := gf.NewField(primitivePoly)
+	len_secret := len(shares[0].y)
+	n_shares := len(shares)
+
+	secret := make([]byte, len_secret)
+
+	x := make([]gf.GfElement, n_shares)
+	for s, share := range shares {
+		x[s] = share.x
+	}
+
+	for i := range len_secret {
+		y := make([]gf.GfElement, n_shares)
+		for s, share := range shares {
+			y[s] = share.y[i]
+		}
+
+		// compute L(0) by summing terms l_j(0)
+		L := gf.GfElement(0)
+
+		for j := range n_shares {
+			ell := gf.GfElement(1)
+			for k := range n_shares {
+				if k == j {
+					continue
+				}
+				x, err := field.Divide(field.Subtract(gf.GfElement(0), x[k]), field.Subtract(x[j], x[k]))
+				if err != nil {
+					return nil, err
+				}
+				ell = field.Multiply(ell, x)
+			}
+			L = field.Add(L, field.Multiply(y[j], ell))
+		}
+
+		secret[i] = byte(L)
+	}
+
+	return secret, nil
 }

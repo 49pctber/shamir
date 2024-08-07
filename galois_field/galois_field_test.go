@@ -5,9 +5,9 @@ import (
 )
 
 func TestTables2(t *testing.T) {
-	m := 2
 	primitivePoly := 0b111
-	field := NewField(m, primitivePoly)
+	m := ComputeDegree(primitivePoly)
+	field := NewField(primitivePoly)
 
 	for element := GfElement(1); element < 1<<m; element++ {
 		power := field.logTable[element]
@@ -19,9 +19,9 @@ func TestTables2(t *testing.T) {
 }
 
 func TestTables3(t *testing.T) {
-	m := 3
 	primitivePoly := 0b1011
-	field := NewField(m, primitivePoly)
+	m := ComputeDegree(primitivePoly)
+	field := NewField(primitivePoly)
 
 	for element := GfElement(1); element < 1<<m; element++ {
 		power := field.logTable[element]
@@ -33,9 +33,9 @@ func TestTables3(t *testing.T) {
 }
 
 func TestTables4(t *testing.T) {
-	m := 4
 	primitivePoly := 0b10011
-	field := NewField(m, primitivePoly)
+	m := ComputeDegree(primitivePoly)
+	field := NewField(primitivePoly)
 
 	for element := GfElement(1); element < 1<<m; element++ {
 		power := field.logTable[element]
@@ -108,9 +108,9 @@ func TestTables4(t *testing.T) {
 }
 
 func TestTables5_1(t *testing.T) {
-	m := 5
 	primitivePoly := 0b100101
-	field := NewField(m, primitivePoly)
+	m := ComputeDegree(primitivePoly)
+	field := NewField(primitivePoly)
 
 	for element := GfElement(1); element < 1<<m; element++ {
 		power := field.logTable[element]
@@ -122,9 +122,9 @@ func TestTables5_1(t *testing.T) {
 }
 
 func TestTables5_2(t *testing.T) {
-	m := 5
 	primitivePoly := 0b110111
-	field := NewField(m, primitivePoly)
+	m := ComputeDegree(primitivePoly)
+	field := NewField(primitivePoly)
 
 	for element := GfElement(1); element < 1<<m; element++ {
 		power := field.logTable[element]
@@ -136,9 +136,9 @@ func TestTables5_2(t *testing.T) {
 }
 
 func TestTables8_1(t *testing.T) {
-	m := 8
 	primitivePoly := 0b100011101
-	field := NewField(m, primitivePoly)
+	m := ComputeDegree(primitivePoly)
+	field := NewField(primitivePoly)
 
 	for element := GfElement(1); element < 1<<m; element++ {
 		power := field.logTable[element]
@@ -150,9 +150,9 @@ func TestTables8_1(t *testing.T) {
 }
 
 func TestTables11_1(t *testing.T) {
-	m := 11
 	primitivePoly := 0b100000000101
-	field := NewField(m, primitivePoly)
+	m := ComputeDegree(primitivePoly)
+	field := NewField(primitivePoly)
 
 	for element := GfElement(1); element < 1<<m; element++ {
 		power := field.logTable[element]
@@ -164,9 +164,9 @@ func TestTables11_1(t *testing.T) {
 }
 
 func TestTables8_2(t *testing.T) {
-	m := 8
 	primitivePoly := 0b101011111 // different primitive polynomial
-	field := NewField(m, primitivePoly)
+	m := ComputeDegree(primitivePoly)
+	field := NewField(primitivePoly)
 
 	for element := GfElement(1); element < 1<<m; element++ {
 		power := field.logTable[element]
@@ -178,9 +178,9 @@ func TestTables8_2(t *testing.T) {
 }
 
 func TestTables21(t *testing.T) {
-	m := 21
 	primitivePoly := 0b1000000000000000000101
-	field := NewField(m, primitivePoly)
+	m := ComputeDegree(primitivePoly)
+	field := NewField(primitivePoly)
 
 	for element := GfElement(1); element < 1<<m; element++ {
 		power := field.logTable[element]
@@ -192,9 +192,9 @@ func TestTables21(t *testing.T) {
 }
 
 func TestTables23_1(t *testing.T) {
-	m := 23
 	primitivePoly := 0b100000000000000000100001
-	field := NewField(m, primitivePoly)
+	m := ComputeDegree(primitivePoly)
+	field := NewField(primitivePoly)
 
 	for element := GfElement(1); element < 1<<m; element++ {
 		power := field.logTable[element]
@@ -206,9 +206,9 @@ func TestTables23_1(t *testing.T) {
 }
 
 func TestTables23_2(t *testing.T) {
-	m := 23
 	primitivePoly := 0b101000000000000010100001
-	field := NewField(m, primitivePoly)
+	m := ComputeDegree(primitivePoly)
+	field := NewField(primitivePoly)
 
 	for element := GfElement(1); element < 1<<m; element++ {
 		power := field.logTable[element]
@@ -220,10 +220,8 @@ func TestTables23_2(t *testing.T) {
 }
 
 func TestEvaluatePolynomial(t *testing.T) {
-
-	m := 8
 	primitivePoly := 0b100011101
-	field := NewField(m, primitivePoly)
+	field := NewField(primitivePoly)
 
 	if have, want := field.EvaluatePolynomial([]GfElement{32}, 0), GfElement(32); have != want {
 		t.Errorf("polynomial is constant 32")
@@ -266,6 +264,20 @@ func TestEvaluatePolynomial(t *testing.T) {
 	}
 
 	if have, want := field.EvaluatePolynomial([]GfElement{241, 170, 180}, 27), GfElement(25); have != want {
+		t.Errorf("have %d, want %d", have, want)
+	}
+}
+
+func TestComputeDegree(t *testing.T) {
+	if have, want := ComputeDegree(0b1), 0; have != want {
+		t.Errorf("have %d, want %d", have, want)
+	}
+
+	if have, want := ComputeDegree(0b111), 2; have != want {
+		t.Errorf("have %d, want %d", have, want)
+	}
+
+	if have, want := ComputeDegree(0b100011101), 8; have != want {
 		t.Errorf("have %d, want %d", have, want)
 	}
 }
