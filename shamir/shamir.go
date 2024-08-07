@@ -1,72 +1,101 @@
 package shamir
 
 import (
-	"crypto/rand"
-	"encoding/hex"
+	crand "crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	gf "galois_field"
+	"math/rand/v2"
 )
 
-var logTable []gf.GfPower
-var antilogTable []gf.GfElement
-
-func init() {
-	m := 8
-	primitivePoly := 0b100011101
-	logTable, antilogTable = gf.GenerateGF2mTables(m, primitivePoly)
+type Share struct {
+	id string         // id associated with a given secret
+	x  gf.GfElement   // x coordinate
+	y  []gf.GfElement // y coordinates
 }
 
-func createShares(secret []byte, nshares, threshold int) error {
+func (share Share) String() string {
+	return fmt.Sprintf("Share #%d: %v", share.x, share.y)
+}
+
+type Shamir struct {
+	id     string  // unique identifier to ensure shares were derived from same secret
+	field  gf.Gf2m // field over which to operate
+	shares []Share // individual shares to distribute
+}
+
+func (shamir Shamir) String() string {
+	s := fmt.Sprintf("Secret %v\n", shamir.id)
+	s += fmt.Sprintf("  Field Parameters: %v\n", shamir.field)
+	s += "  Shares:\n"
+	for _, share := range shamir.shares {
+		s += fmt.Sprintf("    %v\n", share)
+	}
+	return s
+}
+
+// computes the degree of a given polynomial
+func ComputeDegree(poly int) int {
+	m := 0
+	for poly > 1 {
+		poly >>= 1
+		m += 1
+	}
+	return m
+}
+
+func NewShamir(primitivePoly int, nshares int, threshold int, secret []byte) (*Shamir, error) {
+
+	// input validation
 	if threshold > nshares {
-		return errors.New("threshold cannot exceed number of shares")
+		return nil, errors.New("threshold cannot exceed number of shares")
 	}
 
-	shares := make([][]byte, nshares)
-	for i := 0; i < nshares; i++ {
-		shares[i] = make([]byte, len(secret))
+	if (primitivePoly & 0b1) != 1 {
+		return nil, errors.New("supplied polynomial cannot be primitive")
 	}
 
+	// compute degree of primitive polynomial
+	m := ComputeDegree(primitivePoly)
+
+	// generate random ID for secret shares
+	idbytes := make([]byte, 15)
+	if _, err := crand.Read(idbytes); err != nil {
+		return nil, errors.New("error reading from random source")
+	}
+
+	// initialize the data needed for Shamir's secret sharing scheme
+	shamir := &Shamir{
+		id:     base64.StdEncoding.EncodeToString(idbytes),
+		field:  gf.NewField(m, primitivePoly),
+		shares: make([]Share, nshares),
+	}
+
+	// initialize each individual share
+	for i := range shamir.shares {
+		shamir.shares[i].id = shamir.id
+		shamir.shares[i].x = gf.GfElement(i + 1)
+		shamir.shares[i].y = make([]gf.GfElement, len(secret))
+	}
+
+	// choose new polynomials for each byte in secret
 	for i := 0; i < len(secret); i++ {
+
 		// choose random polynomial
-		p, err := chooseRandomPolynomial(secret[i], threshold)
-		if err != nil {
-			return err
+		p := make([]gf.GfElement, threshold)
+		for i := range p {
+			p[i] = gf.GfElement(rand.IntN(shamir.field.GetNelements()))
 		}
+
+		// set constant term to be secret
+		p[0] = gf.GfElement(secret[i])
 
 		// compute value of polynomial for each of the shares
-		for x := 1; x < nshares+1; x++ {
-			y := gf.GfElement(0)
-			for d := len(p) - 1; d > -1; d-- {
-				// y = y * x + p[d] // what needs to happen, but in GF(256)
-				if y == 0 {
-					y = gf.GfElement(p[d])
-				} else {
-					y = antilogTable[(logTable[y]+logTable[x]+255)%255] ^ gf.GfElement(p[d])
-				}
-
-			}
-			shares[x-1][i] = byte(y)
+		for _, share := range shamir.shares {
+			share.y[i] = shamir.field.EvaluatePolynomial(p, share.x)
 		}
 	}
 
-	// report shares in hex
-	for i, share := range shares {
-		fmt.Printf("%d: %s\n", i+1, hex.EncodeToString(share))
-	}
-
-	return nil
-
-}
-
-func chooseRandomPolynomial(secret byte, threshold int) ([]byte, error) {
-	p := make([]byte, threshold)
-	_, err := rand.Read(p[1:])
-	if err != nil {
-		return nil, nil
-	}
-
-	p[0] = secret
-
-	return p, nil
+	return shamir, nil
 }
