@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 
 	shamir "github.com/49pctber/shamir/internal"
 	"github.com/spf13/cobra"
@@ -45,6 +46,8 @@ var distributeCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		fmt.Printf("\nGenerating %d-of-%d secret sharing scheme...\n\n", threshold, nshares)
+
 		s, err := shamir.NewShamirSecret(primitivePoly, nshares, threshold, []byte(secretstring))
 		if err != nil {
 			fmt.Printf("error distributing secret: %v\n", err)
@@ -59,9 +62,21 @@ var distributeCmd = &cobra.Command{
 		}
 
 		for i := range nshares {
-			fname := path.Join(dir, fmt.Sprintf("%s.txt", s.ShareLabel(i)))
-			os.WriteFile(fname, []byte(s.ShareString(i)), os.ModeAppend)
+
+			fname := filepath.Clean(path.Join(dir, fmt.Sprintf("%s.txt", s.ShareLabel(i))))
+			sharestring := s.ShareString(i)
+
+			err := os.WriteFile(fname, []byte(sharestring), os.ModeAppend)
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			fmt.Printf("%s saved to %s\n", sharestring, fname)
+
 		}
+
+		fmt.Println()
+
 	},
 }
 

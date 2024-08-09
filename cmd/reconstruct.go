@@ -15,9 +15,9 @@ import (
 )
 
 var reconstructCmd = &cobra.Command{
-	Use:   "reconstruct [folder containing secrets]",
-	Short: "reconstruct secret(s) given a directory",
-	Long:  `reconstruct secret(s) given a directory`,
+	Use:   "reconstruct [folder containing shares]",
+	Short: "reconstruct secret(s) given a directory containing shares",
+	Long:  `reconstruct secret(s) given a directory containing shares`,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		r := regexp.MustCompile(`shamir-(\w+)-(\w+)-(\w+)-(.+)`)
@@ -31,16 +31,27 @@ var reconstructCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		dir, err = filepath.Abs(dir)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Printf("\nSearching %s for .txt files...\n\n", dir)
+
+		dottxtfound := false
+
 		err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 
 			if d.IsDir() {
 				return nil
 			}
 
-			// only check files that begin with shamir
-			if !strings.HasPrefix(path, "shamir-") {
+			if !strings.HasSuffix(path, ".txt") {
 				return nil
 			}
+
+			dottxtfound = true
+
+			fmt.Printf("  Searching %s for shares...\n", path)
 
 			data, err := os.ReadFile(path)
 			if err != nil {
@@ -49,6 +60,7 @@ var reconstructCmd = &cobra.Command{
 
 			matches := r.FindAllSubmatch(data, -1)
 			for _, match := range matches {
+				fmt.Printf("    Found shamir-%s-%s-%s\n", match[1], match[2], match[3])
 				id := string(match[1])
 
 				primitivePoly, err := strconv.ParseInt(string(match[2]), 16, 64)
@@ -90,6 +102,13 @@ var reconstructCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		if !dottxtfound {
+			fmt.Println("No .txt files found. Exiting.\n")
+			os.Exit(0)
+		}
+
+		fmt.Println("\nAttempting to reconstruct secrets from shares that were found...\n")
+
 		for id, shares := range secretDict {
 			sharesslice := make([]shamir.Share, 0)
 			for _, share := range shares {
@@ -100,9 +119,8 @@ var reconstructCmd = &cobra.Command{
 				fmt.Println(err)
 				os.Exit(1)
 			}
-			fmt.Printf("%s: %s\n", id, secret)
+			fmt.Printf("%s:\n%s\n\n", id, secret)
 		}
-
 	},
 }
 

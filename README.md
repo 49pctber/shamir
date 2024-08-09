@@ -31,7 +31,7 @@ Each byte corresponds to the value of a polynomial evaulated at the correspondin
 (Note that each byte is encoded separately, each with a randomly-generated polynomial.)
 
 To reconstruct the message, simply run `shamir reconstruct` in the same directory you ran `shamir distribute` command.
-This will check any files with the `shamir-` prefix for shares.
+This will check any text files with the `.txt` file extension for shares.
 
 Say we have the following text files:
 
