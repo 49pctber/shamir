@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 
 	shamir "github.com/49pctber/shamir/internal"
 	"github.com/spf13/cobra"
@@ -19,9 +20,9 @@ var reconstructCmd = &cobra.Command{
 	Long:  `reconstruct secret(s) given a directory`,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		r := regexp.MustCompile(`^shamir-(\w+)-(\w+)-(\w+)-(.+)$`)
+		r := regexp.MustCompile(`shamir-(\w+)-(\w+)-(\w+)-(.+)`)
 
-		secretDict := make(map[string][]shamir.Share, 0)
+		secretDict := make(map[string]map[int]shamir.Share, 0)
 		primitivePolys := make(map[string]int, 0)
 
 		dir, err := cmd.Flags().GetString("directory")
@@ -36,13 +37,18 @@ var reconstructCmd = &cobra.Command{
 				return nil
 			}
 
+			// only check files that begin with shamir
+			if !strings.HasPrefix(path, "shamir-") {
+				return nil
+			}
+
 			data, err := os.ReadFile(path)
 			if err != nil {
 				return err
 			}
 
-			match := r.FindSubmatch(data)
-			if len(match) > 0 {
+			matches := r.FindAllSubmatch(data, -1)
+			for _, match := range matches {
 				id := string(match[1])
 
 				primitivePoly, err := strconv.ParseInt(string(match[2]), 16, 64)
@@ -70,11 +76,11 @@ var reconstructCmd = &cobra.Command{
 				}
 
 				if _, exists := secretDict[id]; !exists {
-					secretDict[id] = make([]shamir.Share, 0)
+					secretDict[id] = make(map[int]shamir.Share, 0)
 					primitivePolys[id] = int(primitivePoly)
 				}
 
-				secretDict[id] = append(secretDict[id], shamir.NewShare(x, y))
+				secretDict[id][int(x)] = shamir.NewShare(x, y)
 			}
 
 			return nil
@@ -85,7 +91,11 @@ var reconstructCmd = &cobra.Command{
 		}
 
 		for id, shares := range secretDict {
-			secret, err := shamir.RecoverSecret(primitivePolys[id], shares)
+			sharesslice := make([]shamir.Share, 0)
+			for _, share := range shares {
+				sharesslice = append(sharesslice, share)
+			}
+			secret, err := shamir.RecoverSecret(primitivePolys[id], sharesslice)
 			if err != nil {
 				fmt.Println(err)
 				os.Exit(1)
@@ -99,5 +109,5 @@ var reconstructCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(reconstructCmd)
 
-	reconstructCmd.PersistentFlags().StringP("directory", "d", "shamir_shares", "input directory")
+	reconstructCmd.PersistentFlags().StringP("directory", "d", ".", "input directory")
 }

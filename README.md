@@ -12,10 +12,10 @@ To distribute the secrets, use the command
 `shamir distribute -S "<secret>" -n <number of shares to produce> -k <minimum number of shares to reconstruct the secret> -d "<output directory>"`
 
 The shares will be saved as text files in the specified output directory.
-The default directory is `./shamir_shares`.
+The default directory is the current directory.
 
 Way we run `shamir distribute -S="This is a super secret secret." -n=5 -k=3`.
-Five text files will be saved in `./shamir_shares/`, each containing a share of the secret.
+Five text files will be saved in the current directory, each containing a share of the secret.
 The first file might be called `shamir-IW6CPGV5COQ6FHMI-11d-1.txt`, and it contains the text
 
 ``` text
@@ -31,18 +31,13 @@ Each byte corresponds to the value of a polynomial evaulated at the correspondin
 (Note that each byte is encoded separately, each with a randomly-generated polynomial.)
 
 To reconstruct the message, simply run `shamir reconstruct` in the same directory you ran `shamir distribute` command.
+This will check any files with the `shamir-` prefix for shares.
 
 Say we have the following text files:
 
 ``` text
 shamir-IW6CPGV5COQ6FHMI-11d-1-IyJneCEokIwf319Sl+sqeuLtBLwqWMxyd/m5Hj/U
-```
-
-``` text
 shamir-IW6CPGV5COQ6FHMI-11d-4-lKF0rNRgjQGXKJ0gbfKDMompvM6KGtAPw5TGAUGc
-```
-
-``` text
 shamir-IW6CPGV5COQ6FHMI-11d-5-4+t6p9Uhbq3p17EHinzbaBgh2wDFNjwO0Q4Negpm
 ```
 

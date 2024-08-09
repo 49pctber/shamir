@@ -69,7 +69,7 @@ func init() {
 	rootCmd.AddCommand(distributeCmd)
 
 	distributeCmd.PersistentFlags().StringP("secret", "S", "", "the secret to share")
-	distributeCmd.PersistentFlags().StringP("directory", "d", "shamir_shares", "output directory")
+	distributeCmd.PersistentFlags().StringP("directory", "d", ".", "output directory")
 	distributeCmd.PersistentFlags().IntP("nshares", "n", 0, "number of shares to produce")
 	distributeCmd.PersistentFlags().IntP("threshold", "k", 0, "the number of shares needed to reconstruct the secret")
 	distributeCmd.PersistentFlags().IntP("primitive", "p", 0x11d, "primitive polynomial to use when constructing Galois field")
