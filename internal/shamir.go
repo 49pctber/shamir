@@ -2,38 +2,37 @@ package shamir
 
 import (
 	crand "crypto/rand"
-	"encoding/base64"
+	"encoding/base32"
 	"errors"
 	"fmt"
 	"math/rand/v2"
 )
 
-type Share struct {
-	id string      // id associated with a given secret
-	x  GfElement   // x coordinate
-	y  []GfElement // y coordinates
-}
-
-func (share Share) String() string {
-	return fmt.Sprintf("Share #%d: %v", share.x, share.y)
-}
-
 type Shamir struct {
-	id        string  // unique identifier to ensure shares were derived from same secret
-	field     Gf2m    // field over which to operate
-	threshold int     // number of shares needed to reconstruct message
-	shares    []Share // individual shares to distribute
+	id     string  // unique identifier to ensure shares were derived from same secret
+	field  Gf2m    // field over which to operate
+	shares []Share // individual shares to distribute
 }
 
 func (shamir Shamir) String() string {
-	s := fmt.Sprintf("Secret %v\n", shamir.id)
-	s += fmt.Sprintf("  Field Parameters: %v\n", shamir.field)
-	s += fmt.Sprintf("  Threshold: %v\n", shamir.threshold)
-	s += "  Shares:\n"
-	for _, share := range shamir.shares {
-		s += fmt.Sprintf("    %v\n", share)
+	s := fmt.Sprintf("Secret ID %v\n", shamir.id)
+	s += "Shares:\n"
+	for n := range shamir.shares {
+		s += fmt.Sprintf("  %s\n", shamir.ShareString(n))
 	}
 	return s
+}
+
+func (shamir Shamir) Prefix() string {
+	return fmt.Sprintf("shamir-%s-%x", shamir.id, shamir.field.primitivePoly)
+}
+
+func (shamir Shamir) ShareLabel(n int) string {
+	return fmt.Sprintf("%s-%s", shamir.Prefix(), shamir.shares[n].GetXString())
+}
+
+func (shamir Shamir) ShareString(n int) string {
+	return fmt.Sprintf("%s-%s", shamir.ShareLabel(n), shamir.shares[n].GetYString())
 }
 
 func NewShamirSecret(primitivePoly int, nshares int, threshold int, secret []byte) (*Shamir, error) {
@@ -47,22 +46,20 @@ func NewShamirSecret(primitivePoly int, nshares int, threshold int, secret []byt
 	}
 
 	// generate random ID for secret shares
-	idbytes := make([]byte, 15)
+	idbytes := make([]byte, 10)
 	if _, err := crand.Read(idbytes); err != nil {
 		return nil, errors.New("error reading from random source")
 	}
 
 	// initialize the data needed for Shamir's secret sharing scheme
 	shamir := &Shamir{
-		id:        base64.StdEncoding.EncodeToString(idbytes),
-		field:     NewField(primitivePoly),
-		threshold: threshold,
-		shares:    make([]Share, nshares),
+		id:     base32.StdEncoding.EncodeToString(idbytes),
+		field:  NewField(primitivePoly),
+		shares: make([]Share, nshares),
 	}
 
 	// initialize each individual share
 	for i := range shamir.shares {
-		shamir.shares[i].id = shamir.id
 		shamir.shares[i].x = GfElement(i + 1)
 		shamir.shares[i].y = make([]GfElement, len(secret))
 	}

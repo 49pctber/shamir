@@ -19,10 +19,26 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-package main
+package cmd
 
-import "github.com/49pctber/shamir/cmd"
+import (
+	"os"
 
-func main() {
-	cmd.Execute()
+	"github.com/spf13/cobra"
+)
+
+var rootCmd = &cobra.Command{
+	Use:   "shamir",
+	Short: "An implementation of Shamir's secret sharing scheme.",
+	Long:  `This application allows you to share n secrets where any k shares can be used to reconstruct the original secret. Having k-1 or fewer shares will provide *no* information about the secret.`,
+}
+
+func Execute() {
+	err := rootCmd.Execute()
+	if err != nil {
+		os.Exit(1)
+	}
+}
+
+func init() {
 }
