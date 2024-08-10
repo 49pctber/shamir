@@ -66,7 +66,7 @@ var distributeCmd = &cobra.Command{
 			fname := filepath.Clean(path.Join(dir, fmt.Sprintf("%s.txt", s.ShareLabel(i))))
 			sharestring := s.ShareString(i)
 
-			err := os.WriteFile(fname, []byte(sharestring), os.ModeAppend)
+			err := os.WriteFile(fname, []byte(sharestring), 0766)
 			if err != nil {
 				fmt.Println(err)
 			}
