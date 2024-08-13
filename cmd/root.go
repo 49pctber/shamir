@@ -46,7 +46,7 @@ Having k-1 or fewer shares will provide *no* information about the secret other 
 		}
 
 		var resp string
-		fmt.Print("No command specified. Search current directory for shares in .txt files? (y/n): ")
+		fmt.Print("No command specified. Search directory for shares in .txt files? (y/n): ")
 		fmt.Scanf("%s", &resp)
 
 		if resp[0] == 'y' || resp[0] == 'Y' {
