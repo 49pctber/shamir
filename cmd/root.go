@@ -42,6 +42,7 @@ Having k-1 or fewer shares will provide *no* information about the secret other 
 		secretstring, err := cmd.Flags().GetString("secret")
 		if err != nil || len(secretstring) > 0 {
 			distributeCmd.Run(cmd, args)
+			os.Exit(0)
 		}
 
 		var resp string
@@ -50,8 +51,10 @@ Having k-1 or fewer shares will provide *no* information about the secret other 
 
 		if resp[0] == 'y' || resp[0] == 'Y' {
 			reconstructCmd.Run(cmd, args)
+			os.Exit(0)
 		} else {
 			cmd.Root().Help()
+			os.Exit(0)
 		}
 	},
 }

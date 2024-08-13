@@ -124,7 +124,7 @@ var reconstructCmd = &cobra.Command{
 				fmt.Println(err)
 				os.Exit(1)
 			}
-			fmt.Printf("%s:\n%s\n\n", id, secret)
+			fmt.Printf("%s:\n%s\n", id, secret)
 		}
 	},
 }
