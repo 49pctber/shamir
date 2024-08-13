@@ -22,6 +22,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -30,7 +31,29 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "shamir",
 	Short: "An implementation of Shamir's secret sharing scheme.",
-	Long:  `This application allows you to share n secrets where any k shares can be used to reconstruct the original secret. Having k-1 or fewer shares will provide *no* information about the secret.`,
+	Long: `This application is a practical example of a Shamir Secret Sharing scheme.
+	
+It allows you to divide a secret string S into n "shares".
+Any k of those n shares can be used to reconstruct the original secret S.
+
+Having k-1 or fewer shares will provide *no* information about the secret other than its length.`,
+	Run: func(cmd *cobra.Command, args []string) {
+
+		secretstring, err := cmd.Flags().GetString("secret")
+		if err != nil || len(secretstring) > 0 {
+			distributeCmd.Run(cmd, args)
+		}
+
+		var resp string
+		fmt.Print("No command specified. Search current directory for shares in .txt files? (y/n): ")
+		fmt.Scanf("%s", &resp)
+
+		if resp[0] == 'y' || resp[0] == 'Y' {
+			reconstructCmd.Run(cmd, args)
+		} else {
+			cmd.Root().Help()
+		}
+	},
 }
 
 func Execute() {
@@ -41,4 +64,9 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.PersistentFlags().StringP("secret", "s", "", "the secret to share")
+	rootCmd.PersistentFlags().StringP("directory", "d", ".", "input/output directory")
+	rootCmd.PersistentFlags().IntP("nshares", "n", 0, "number of shares to produce")
+	rootCmd.PersistentFlags().IntP("threshold", "k", 0, "the number of shares needed to reconstruct the secret")
+	rootCmd.PersistentFlags().IntP("primitive", "p", 0x11d, "primitive polynomial to use when constructing Galois field")
 }

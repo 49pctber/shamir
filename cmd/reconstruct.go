@@ -35,21 +35,25 @@ var reconstructCmd = &cobra.Command{
 		if err != nil {
 			fmt.Println(err)
 		}
-		fmt.Printf("\nSearching %s for .txt files...\n\n", dir)
+		fmt.Printf("Searching %s for .txt files...\n", dir)
 
-		dottxtfound := false
+		sharesfound := false
 
 		err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 
-			if d.IsDir() {
-				return nil
+			// fmt.Printf("%s (%s) (%s)\n", path, d, err)
+			if err != nil {
+				fmt.Printf("Error accessing %s: %v\n", path, err)
+				return err // Stop the walk if an error is encountered
+			}
+
+			if d.IsDir() && path != dir {
+				return filepath.SkipDir
 			}
 
 			if !strings.HasSuffix(path, ".txt") {
 				return nil
 			}
-
-			dottxtfound = true
 
 			fmt.Printf("  Searching %s for shares...\n", path)
 
@@ -61,6 +65,7 @@ var reconstructCmd = &cobra.Command{
 			matches := r.FindAllSubmatch(data, -1)
 			for _, match := range matches {
 				fmt.Printf("    Found shamir-%s-%s-%s\n", match[1], match[2], match[3])
+				sharesfound = true
 				id := string(match[1])
 
 				primitivePoly, err := strconv.ParseInt(string(match[2]), 16, 64)
@@ -102,12 +107,12 @@ var reconstructCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		if !dottxtfound {
-			fmt.Println("No .txt files found. Exiting.\n")
+		if !sharesfound {
+			fmt.Println("No shares found. Exiting.")
 			os.Exit(0)
 		}
 
-		fmt.Println("\nAttempting to reconstruct secrets from shares that were found...\n")
+		fmt.Println("Attempting to reconstruct secrets from shares that were found...")
 
 		for id, shares := range secretDict {
 			sharesslice := make([]shamir.Share, 0)
@@ -126,6 +131,4 @@ var reconstructCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(reconstructCmd)
-
-	reconstructCmd.PersistentFlags().StringP("directory", "d", ".", "input directory")
 }
