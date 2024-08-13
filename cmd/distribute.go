@@ -55,7 +55,7 @@ var distributeCmd = &cobra.Command{
 		}
 
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			err = os.Mkdir(dir, 0777)
+			err = os.Mkdir(dir, 0744)
 			if err != nil {
 				panic(err)
 			}
