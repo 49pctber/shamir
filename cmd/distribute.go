@@ -55,7 +55,7 @@ var distributeCmd = &cobra.Command{
 		}
 
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			err = os.Mkdir(dir, os.ModeDir)
+			err = os.Mkdir(dir, 0777)
 			if err != nil {
 				panic(err)
 			}
@@ -66,7 +66,8 @@ var distributeCmd = &cobra.Command{
 			fname := filepath.Clean(path.Join(dir, fmt.Sprintf("%s.txt", s.ShareLabel(i))))
 			sharestring := s.ShareString(i)
 
-			err := os.WriteFile(fname, []byte(sharestring), 0766)
+			err := os.WriteFile(fname, []byte(sharestring), 0400)
+
 			if err != nil {
 				fmt.Println(err)
 			}
