@@ -7,55 +7,85 @@ If you have fewer than `k` of the shares, you will have no information (other th
 
 ## Usage
 
-To distribute the secrets, use the command
+To distribute a string, use the command
 
-`shamir distribute -S "<secret>" -n <number of shares to produce> -k <minimum number of shares to reconstruct the secret> -d "<output directory>"`
+```
+shamir distribute string "<secret string>" -n <number of shares to produce> -k <minimum number of shares to reconstruct the secret>
+```
 
-The shares will be saved as text files in the specified output directory.
-The default directory is the current directory.
+`n` shares will be printed to the terminal.
 
-Way we run `shamir distribute -S="This is a super secret secret." -n=5 -k=3`.
-Five text files will be saved in the current directory, each containing a share of the secret.
-The first file might be called `shamir-IW6CPGV5COQ6FHMI-11d-1.txt`, and it contains the text
+We can reconstruct the secret by using
 
-``` text
-shamir-IW6CPGV5COQ6FHMI-11d-1-IyJneCEokIwf319Sl+sqeuLtBLwqWMxyd/m5Hj/U
+```
+shamir reconstruct string "<secret 1>" "<secret 2>" ...
+```
+
+As long as we provide `k` shares, the secret will then be printed to the terminal. Otherwise, garbage will be printed to the terminal.
+
+### Example
+
+Say we run `shamir distribute string "This is a secret." -n=5 -k=3`.
+Something like the following could be printed to the screen:
+
+```
+Generating 3-of-5 secret sharing scheme...
+shamir-ZDUIQPAX-11d-1-5dxDU36YEiGQmcX3tCfJlHg
+shamir-ZDUIQPAX-11d-2-wzJianU+jsC3xr1O5qPj6W8
+shamir-ZDUIQPAX-11d-3-coZISivP78FGfwvcMfZPCTk
+shamir-ZDUIQPAX-11d-4-4GAeOAldaFJ07zR7rDxfTj8
+shamir-ZDUIQPAX-11d-5-UdQ0GFesCVOFVoLpe2nzrmk
 ```
 
 The prefix `shamir-` indicates that this is a share in Shamir's secret sharing scheme.
-`IW6CPGV5COQ6FHMI` is a randomly generated ID that allows you to correlate secrets and shares.
+`ZDUIQPAX` is a randomly generated ID that allows you to correlate shares to the same secret.
 `11d` is the primitive polynomial used to construct the underlying Galois field.
 `1` is the x coordinate of the share.
 The remaining text is base64-encoded data.
-Each byte corresponds to the value of a polynomial evaulated at the corresponding x-coordinate of the share.
+Each byte corresponds to the value of a polynomial evaluated at the corresponding x-coordinate of the share.
 (Note that each byte is encoded separately, each with a randomly-generated polynomial.)
 
-To reconstruct the message, simply run `shamir reconstruct` in the same directory you ran `shamir distribute` command.
-This will check any text files with the `.txt` file extension for shares.
+To reconstruct the message, simply run `shamir reconstruct` with any three of the five shares.
 
-Say we have the following text files:
+For example, using shares 1, 4, and 5, we would run the command
 
-``` text
-shamir-IW6CPGV5COQ6FHMI-11d-1-IyJneCEokIwf319Sl+sqeuLtBLwqWMxyd/m5Hj/U
-shamir-IW6CPGV5COQ6FHMI-11d-4-lKF0rNRgjQGXKJ0gbfKDMompvM6KGtAPw5TGAUGc
-shamir-IW6CPGV5COQ6FHMI-11d-5-4+t6p9Uhbq3p17EHinzbaBgh2wDFNjwO0Q4Negpm
+```
+shamir reconstruct string "shamir-ZDUIQPAX-11d-4-4GAeOAldaFJ07zR7rDxfTj8" "shamir-ZDUIQPAX-11d-5-UdQ0GFesCVOFVoLpe2nzrmk" "shamir-ZDUIQPAX-11d-1-5dxDU36YEiGQmcX3tCfJlHg"
 ```
 
-We then run the command `shamir reconstruct`, and we see that the secret is successfully reconstructed and printed to the console:
+We get the following output:
 
-``` text
-IW6CPGV5COQ6FHMI: This is a super secret secret.
 ```
+...
+ZDUIQPAX:
+This is a secret.
+```
+
+Note that the order in which we supply the shares is irrelevant.
 
 If we try to only use shares 4 and 5, we cannot reconstruct the message, and we get gibberish:
 
 ``` text
-IW6CPGV5COQ6FHMI: U�L��y&�r�-����G��=ѫ�G
-����pS
+...
+ZDUIQPAX:
+���l��V�1�      �u��z
 ```
 
-Note that the file names themselves do not matter.
-All of the information needed to reconstruct them is provided in the file itself.
+### QR Code Support
+
+To make distribution of shares easier in the real world, you can use the `--qr` flag to save each share as a unique QR code.
+
+### Sharing Files
+
+A similar process to the one described above can be performed to use this scheme on a file.
+
+To distribute a file, use `shamir distribute file <filename>` with an appropriate `-n` and `-k`.
+This will produce `n` `.txt` files in your current directory.
+
+To reconstruct the secret, run `shamir reconstruct file` in a directory with at least `k` of the shares to reconstruct the secret.
+The secret will be saved to a file.
+The filename is `secret-<secret id>` with no extension.
+**Note that the original filename will be lost!**
 
 ## Build Notes
 

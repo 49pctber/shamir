@@ -104,9 +104,13 @@ func RecoverSecret(shares []Share) ([]byte, error) {
 	secret := make([]byte, len_secret)
 
 	x := make([]GfElement, n_shares)
+	existingxs := make(map[GfElement]any, 0)
 	for s, share := range shares {
-		// TODO: check that shares all have different x
+		if _, ok := existingxs[share.x]; ok {
+			return nil, errors.New("duplicate shares provided")
+		}
 		x[s] = share.x
+		existingxs[share.x] = nil
 	}
 
 	// reconstruct secret
