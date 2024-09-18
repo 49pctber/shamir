@@ -6,7 +6,7 @@ import (
 	"path"
 	"path/filepath"
 
-	shamir "github.com/49pctber/shamir/internal"
+	shamir "github.com/49pctber/shamir"
 	"github.com/spf13/cobra"
 )
 
