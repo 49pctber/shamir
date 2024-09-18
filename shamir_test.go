@@ -19,7 +19,7 @@ func TestShamir(t *testing.T) {
 	}
 
 	// reconstruct secret from shares
-	recovered_secret, err := RecoverSecret(primitivePoly, shamir.shares[0:2])
+	recovered_secret, err := RecoverSecret(shamir.shares[0:2])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +30,7 @@ func TestShamir(t *testing.T) {
 	}
 
 	// reconstruct secret from different shares
-	recovered_secret, err = RecoverSecret(primitivePoly, shamir.shares[2:4])
+	recovered_secret, err = RecoverSecret(shamir.shares[2:4])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +41,7 @@ func TestShamir(t *testing.T) {
 	}
 
 	// reconstruct secret from different shares
-	recovered_secret, err = RecoverSecret(primitivePoly, shamir.shares[4:6])
+	recovered_secret, err = RecoverSecret(shamir.shares[4:6])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +66,7 @@ func TestShamir_2(t *testing.T) {
 	}
 
 	// should not be able to reconstruct secret from 2 shares
-	recovered_secret, err := RecoverSecret(primitivePoly, shamir.shares[0:2])
+	recovered_secret, err := RecoverSecret(shamir.shares[0:2])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func TestShamir_2(t *testing.T) {
 	}
 
 	// should not be able to reconstruct secret from 2 shares
-	recovered_secret, err = RecoverSecret(primitivePoly, shamir.shares[0:3])
+	recovered_secret, err = RecoverSecret(shamir.shares[0:3])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestShamir_2(t *testing.T) {
 	}
 
 	// reconstruct secret from minimum number of shares
-	recovered_secret, err = RecoverSecret(primitivePoly, shamir.shares[0:4])
+	recovered_secret, err = RecoverSecret(shamir.shares[0:4])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestShamir_2(t *testing.T) {
 	}
 
 	// reconstruct secret from all available shares
-	recovered_secret, err = RecoverSecret(primitivePoly, shamir.shares[0:6])
+	recovered_secret, err = RecoverSecret(shamir.shares[0:6])
 	if err != nil {
 		t.Fatal(err)
 	}

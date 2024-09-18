@@ -23,16 +23,12 @@ func (shamir Shamir) String() string {
 	return s
 }
 
-func (shamir Shamir) Prefix() string {
-	return fmt.Sprintf("shamir-%s-%x", shamir.id, shamir.field.primitivePoly)
-}
-
-func (shamir Shamir) ShareLabel(n int) string {
-	return fmt.Sprintf("%s-%s", shamir.Prefix(), shamir.shares[n].GetXString())
-}
-
 func (shamir Shamir) ShareString(n int) string {
-	return fmt.Sprintf("%s-%s", shamir.ShareLabel(n), shamir.shares[n].GetYString())
+	return fmt.Sprintf("%s-%s", shamir.shares[n].ShareLabel(), shamir.shares[n].GetYString())
+}
+
+func (shamir Shamir) GetShares() []Share {
+	return shamir.shares
 }
 
 func NewShamirSecret(primitivePoly int, nshares int, threshold int, secret []byte) (*Shamir, error) {
@@ -46,7 +42,7 @@ func NewShamirSecret(primitivePoly int, nshares int, threshold int, secret []byt
 	}
 
 	// generate random ID for secret shares
-	idbytes := make([]byte, 10)
+	idbytes := make([]byte, 5)
 	if _, err := crand.Read(idbytes); err != nil {
 		return nil, errors.New("error reading from random source")
 	}
@@ -60,6 +56,8 @@ func NewShamirSecret(primitivePoly int, nshares int, threshold int, secret []byt
 
 	// initialize each individual share
 	for i := range shamir.shares {
+		shamir.shares[i].secret_id = shamir.id
+		shamir.shares[i].primitivePoly = int64(primitivePoly)
 		shamir.shares[i].x = GfElement(i + 1)
 		shamir.shares[i].y = make([]GfElement, len(secret))
 	}
@@ -85,22 +83,33 @@ func NewShamirSecret(primitivePoly int, nshares int, threshold int, secret []byt
 	return shamir, nil
 }
 
-func RecoverSecret(primitivePoly int, shares []Share) ([]byte, error) {
+func RecoverSecret(shares []Share) ([]byte, error) {
 
-	// TODO: check that shares all have same id
-	// TODO: check that shares all have different x
+	// check that shares all have same id
+	var secret_id string
+	for i := range shares {
+		if i == 0 {
+			secret_id = shares[0].secret_id
+		} else {
+			if shares[1].secret_id != secret_id {
+				return nil, errors.New("secret ID's don't match")
+			}
+		}
+	}
 
-	field := NewField(primitivePoly)
+	// initialize data
+	field := NewField(int(shares[0].GetPrimitivePoly()))
 	len_secret := len(shares[0].y)
 	n_shares := len(shares)
-
 	secret := make([]byte, len_secret)
 
 	x := make([]GfElement, n_shares)
 	for s, share := range shares {
+		// TODO: check that shares all have different x
 		x[s] = share.x
 	}
 
+	// reconstruct secret
 	for i := range len_secret {
 		y := make([]GfElement, n_shares)
 		for s, share := range shares {

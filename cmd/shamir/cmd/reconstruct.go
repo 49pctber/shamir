@@ -1,13 +1,10 @@
 package cmd
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
 
 	shamir "github.com/49pctber/shamir"
@@ -15,15 +12,18 @@ import (
 )
 
 var reconstructCmd = &cobra.Command{
-	Use:   "reconstruct [folder containing shares]",
-	Short: "reconstruct secret(s) given a directory containing shares",
-	Long:  `reconstruct secret(s) given a directory containing shares`,
+	Use:   "reconstruct",
+	Short: "reconstruct secret",
+	Long:  `reconstruct secret based on strings or files`,
+}
+
+var reconstructFileCmd = &cobra.Command{
+	Use:   "file",
+	Short: "searches the directory for shares in files prefixed with shamir",
+	Long:  `searches the directory for shares in files prefixed with shamir`,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		r := regexp.MustCompile(`shamir-(\w+)-(\w+)-(\w+)-(.+)`)
-
-		secretDict := make(map[string]map[int]shamir.Share, 0)
-		primitivePolys := make(map[string]int, 0)
+		shares := make([]shamir.Share, 0)
 
 		dir, err := cmd.Flags().GetString("directory")
 		if err != nil {
@@ -35,70 +35,32 @@ var reconstructCmd = &cobra.Command{
 		if err != nil {
 			fmt.Println(err)
 		}
-		fmt.Printf("Searching %s for .txt files...\n", dir)
-
-		sharesfound := false
+		fmt.Printf("Searching %s for files prefixed with %s...\n", dir, shamir.SharePrefix)
 
 		err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 
-			// fmt.Printf("%s (%s) (%s)\n", path, d, err)
 			if err != nil {
 				fmt.Printf("Error accessing %s: %v\n", path, err)
-				return err // Stop the walk if an error is encountered
+				return err
 			}
 
+			// ignore subdirectories
 			if d.IsDir() && path != dir {
 				return filepath.SkipDir
-			}
-
-			if !strings.HasSuffix(path, ".txt") {
+			} else if path == dir {
 				return nil
 			}
 
-			fmt.Printf("  Searching %s for shares...\n", path)
+			if !strings.HasPrefix(filepath.Base(path), shamir.SharePrefix) {
+				return nil
+			}
 
 			data, err := os.ReadFile(path)
 			if err != nil {
 				return err
 			}
 
-			matches := r.FindAllSubmatch(data, -1)
-			for _, match := range matches {
-				fmt.Printf("    Found shamir-%s-%s-%s\n", match[1], match[2], match[3])
-				sharesfound = true
-				id := string(match[1])
-
-				primitivePoly, err := strconv.ParseInt(string(match[2]), 16, 64)
-				if err != nil {
-					fmt.Println(err)
-					os.Exit(1)
-				}
-
-				xdata, err := strconv.ParseInt(string(match[3]), 10, 64)
-				if err != nil {
-					fmt.Println(err)
-					os.Exit(1)
-				}
-
-				ydata, err := base64.RawStdEncoding.DecodeString(string(match[4]))
-				if err != nil {
-					fmt.Println(err)
-					os.Exit(1)
-				}
-
-				x := shamir.GfElement(xdata)
-				y := make([]shamir.GfElement, len(ydata))
-				for i := range ydata {
-					y[i] = shamir.GfElement(ydata[i])
-				}
-
-				if _, exists := secretDict[id]; !exists {
-					secretDict[id] = make(map[int]shamir.Share, 0)
-					primitivePolys[id] = int(primitivePoly)
-				}
-
-				secretDict[id][int(x)] = shamir.NewShare(x, y)
-			}
+			shares = append(shares, shamir.NewSharesFromString(string(data))...)
 
 			return nil
 		})
@@ -107,19 +69,80 @@ var reconstructCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		if !sharesfound {
+		if len(shares) == 0 {
 			fmt.Println("No shares found. Exiting.")
 			os.Exit(0)
+		} else {
+			fmt.Printf("Found %d shares.\n", len(shares))
+		}
+
+		secretDict := make(map[string][]shamir.Share, 0)
+
+		for _, share := range shares {
+			if _, ok := secretDict[share.GetSecretId()]; !ok {
+				secretDict[share.GetSecretId()] = make([]shamir.Share, 0)
+			}
+			secretDict[share.GetSecretId()] = append(secretDict[share.GetSecretId()], share)
 		}
 
 		fmt.Println("Attempting to reconstruct secrets from shares that were found...")
 
 		for id, shares := range secretDict {
-			sharesslice := make([]shamir.Share, 0)
-			for _, share := range shares {
-				sharesslice = append(sharesslice, share)
+			secret, err := shamir.RecoverSecret(shares)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
 			}
-			secret, err := shamir.RecoverSecret(primitivePolys[id], sharesslice)
+
+			fname := "secret-" + id
+			abs, err := filepath.Abs(fname)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+
+			err = os.WriteFile(fname, secret, 0700)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+
+			fmt.Printf("Secret %s saved to %s\n", id, abs)
+		}
+	},
+}
+
+var reconstructStringCmd = &cobra.Command{
+	Use:   "string [shares...]",
+	Short: "reconstruct secret given a sequences of shares",
+	Long:  `reconstruct secret given a sequences of shares`,
+	Run: func(cmd *cobra.Command, args []string) {
+
+		shares := make([]shamir.Share, 0)
+
+		for _, arg := range args {
+			shares = append(shares, shamir.NewSharesFromString(arg)...)
+		}
+
+		if len(shares) == 0 {
+			fmt.Println("No valid shares specified. Exiting.")
+			os.Exit(0)
+		}
+
+		secretDict := make(map[string][]shamir.Share, 0)
+
+		for _, share := range shares {
+			fmt.Printf("Found %s\n", share.String())
+			if _, ok := secretDict[share.GetSecretId()]; !ok {
+				secretDict[share.GetSecretId()] = make([]shamir.Share, 0)
+			}
+			secretDict[share.GetSecretId()] = append(secretDict[share.GetSecretId()], share)
+		}
+
+		fmt.Println("Attempting to reconstruct secrets from shares that were found...")
+
+		for id, shares := range secretDict {
+			secret, err := shamir.RecoverSecret(shares)
 			if err != nil {
 				fmt.Println(err)
 				os.Exit(1)
@@ -131,4 +154,9 @@ var reconstructCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(reconstructCmd)
+
+	reconstructCmd.AddCommand(reconstructFileCmd)
+	reconstructFileCmd.PersistentFlags().StringP("directory", "d", "", "directory to search and save results")
+
+	reconstructCmd.AddCommand(reconstructStringCmd)
 }

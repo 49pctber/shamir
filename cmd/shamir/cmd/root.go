@@ -22,7 +22,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -36,27 +35,7 @@ var rootCmd = &cobra.Command{
 It allows you to divide a secret string S into n "shares".
 Any k of those n shares can be used to reconstruct the original secret S.
 
-Having k-1 or fewer shares will provide *no* information about the secret other than its length.`,
-	Run: func(cmd *cobra.Command, args []string) {
-
-		secretstring, err := cmd.Flags().GetString("secret")
-		if err != nil || len(secretstring) > 0 {
-			distributeCmd.Run(cmd, args)
-			os.Exit(0)
-		}
-
-		var resp string
-		fmt.Print("No command specified. Search directory for shares in .txt files? (y/n): ")
-		fmt.Scanf("%s", &resp)
-
-		if resp[0] == 'y' || resp[0] == 'Y' {
-			reconstructCmd.Run(cmd, args)
-			os.Exit(0)
-		} else {
-			cmd.Root().Help()
-			os.Exit(0)
-		}
-	},
+Having k-1 or fewer shares will provide no information about the secret other than its length.`,
 }
 
 func Execute() {
@@ -64,12 +43,4 @@ func Execute() {
 	if err != nil {
 		os.Exit(1)
 	}
-}
-
-func init() {
-	rootCmd.PersistentFlags().StringP("secret", "s", "", "the secret to share")
-	rootCmd.PersistentFlags().StringP("directory", "d", ".", "input/output directory")
-	rootCmd.PersistentFlags().IntP("nshares", "n", 0, "number of shares to produce")
-	rootCmd.PersistentFlags().IntP("threshold", "k", 0, "the number of shares needed to reconstruct the secret")
-	rootCmd.PersistentFlags().IntP("primitive", "p", 0x11d, "primitive polynomial to use when constructing Galois field")
 }
