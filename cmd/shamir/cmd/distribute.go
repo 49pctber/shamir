@@ -18,7 +18,7 @@ var distributeCmd = &cobra.Command{
 	Long:  `Distrbute a secret S into n shares, where any k shares can reconstruct S.`,
 }
 
-func parseInput(cmd *cobra.Command) (int, int, int, bool) {
+func parseInput(cmd *cobra.Command) (int, int, int, bool, bool) {
 	invalid_command := false
 
 	nshares, err := cmd.Flags().GetInt("nshares")
@@ -41,11 +41,13 @@ func parseInput(cmd *cobra.Command) (int, int, int, bool) {
 
 	qr, _ := cmd.Flags().GetBool("qr")
 
+	print, _ := cmd.Flags().GetBool("print")
+
 	if invalid_command {
 		os.Exit(1)
 	}
 
-	return nshares, threshold, primitivePoly, qr
+	return nshares, threshold, primitivePoly, qr, print
 }
 
 func distributeQRCodes(s *shamir.Shamir) {
@@ -85,7 +87,7 @@ var distributeFileCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 
-		nshares, threshold, primitivePoly, qr := parseInput(cmd)
+		nshares, threshold, primitivePoly, qr, print := parseInput(cmd)
 
 		dir, err := os.Getwd()
 		if err != nil {
@@ -116,6 +118,13 @@ var distributeFileCmd = &cobra.Command{
 		if qr {
 			distributeQRCodes(s)
 		}
+
+		if print {
+			err := savePrintableSVG(s)
+			if err != nil {
+				fmt.Printf("error producing printable SVG: %v\n", err)
+			}
+		}
 	},
 }
 
@@ -127,7 +136,7 @@ var distributeStringCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		secretstring := args[0]
-		nshares, threshold, primitivePoly, qr := parseInput(cmd)
+		nshares, threshold, primitivePoly, qr, print := parseInput(cmd)
 		s := generateSecret([]byte(secretstring), primitivePoly, nshares, threshold)
 
 		for _, share := range s.GetShares() {
@@ -136,6 +145,13 @@ var distributeStringCmd = &cobra.Command{
 
 		if qr {
 			distributeQRCodes(s)
+		}
+
+		if print {
+			err := savePrintableSVG(s)
+			if err != nil {
+				fmt.Printf("error producing printable SVG: %v\n", err)
+			}
 		}
 	},
 }
@@ -146,6 +162,7 @@ func init() {
 	distributeCmd.PersistentFlags().IntP("threshold", "k", 0, "the number of shares needed to reconstruct the secret")
 	distributeCmd.PersistentFlags().IntP("primitive", "p", 0x11d, "primitive polynomial to use when constructing Galois field")
 	distributeCmd.PersistentFlags().Bool("qr", false, "indicates QR codes of shares should be generated and saved in current directory")
+	distributeCmd.PersistentFlags().Bool("print", false, "create a printable SVG file with QR codes for each share")
 
 	distributeCmd.AddCommand(distributeFileCmd)
 

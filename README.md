@@ -75,6 +75,13 @@ ZDUIQPAX:
 
 To make distribution of shares easier in the real world, you can use the `--qr` flag to save each share as a unique QR code.
 
+### Printable SVG Support
+
+If you would like to print out the shares, use the `--print` option to create a printable SVG.
+Just be aware that this could open you up to security vulnerabilities in the printing process.
+And be sure to delete the SVG file once you print it!
+Otherwise all the shares will be in one place.
+
 ### Sharing Files
 
 A similar process to the one described above can be performed to use this scheme on a file.

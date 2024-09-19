@@ -23,6 +23,10 @@ func (shamir Shamir) String() string {
 	return s
 }
 
+func (shamir Shamir) GetId() string {
+	return shamir.id
+}
+
 func (shamir Shamir) ShareString(n int) string {
 	return fmt.Sprintf("%s-%s", shamir.shares[n].ShareLabel(), shamir.shares[n].GetYString())
 }

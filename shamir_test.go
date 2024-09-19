@@ -111,8 +111,7 @@ func TestShamir_2(t *testing.T) {
 
 	// reconstruct secret from all available shares
 	_, err = RecoverSecret(append(shamir.shares[0:2], shamir.shares[0:2]...))
-	if err != nil {
-		t.Fatal(err)
+	if err == nil {
 		t.Fatal("should have thrown an error with same shares multiple times")
 	}
 }
