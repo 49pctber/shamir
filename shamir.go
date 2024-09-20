@@ -15,12 +15,12 @@ type Shamir struct {
 }
 
 func (shamir Shamir) String() string {
-	s := fmt.Sprintf("Secret ID %v\n", shamir.id)
+	s := fmt.Sprintf("Secret %s\n", shamir.id)
 	s += "Shares:\n"
 	for n := range shamir.shares {
 		s += fmt.Sprintf("  %s\n", shamir.ShareString(n))
 	}
-	return s
+	return s[:len(s)-1]
 }
 
 func (shamir Shamir) GetId() string {

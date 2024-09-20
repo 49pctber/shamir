@@ -9,7 +9,7 @@ If you have fewer than `k` of the shares, you will have no information (other th
 
 To distribute a string, use the command
 
-```
+``` bash
 shamir distribute string "<secret string>" -n <number of shares to produce> -k <minimum number of shares to reconstruct the secret>
 ```
 
@@ -17,7 +17,7 @@ shamir distribute string "<secret string>" -n <number of shares to produce> -k <
 
 We can reconstruct the secret by using
 
-```
+``` bash
 shamir reconstruct string "<secret 1>" "<secret 2>" ...
 ```
 
@@ -28,8 +28,7 @@ As long as we provide `k` shares, the secret will then be printed to the termina
 Say we run `shamir distribute string "This is a secret." -n=5 -k=3`.
 Something like the following could be printed to the screen:
 
-```
-Generating 3-of-5 secret sharing scheme...
+``` text
 shamir-ZDUIQPAX-11d-1-5dxDU36YEiGQmcX3tCfJlHg
 shamir-ZDUIQPAX-11d-2-wzJianU+jsC3xr1O5qPj6W8
 shamir-ZDUIQPAX-11d-3-coZISivP78FGfwvcMfZPCTk
@@ -49,14 +48,13 @@ To reconstruct the message, simply run `shamir reconstruct` with any three of th
 
 For example, using shares 1, 4, and 5, we would run the command
 
-```
+``` bash
 shamir reconstruct string "shamir-ZDUIQPAX-11d-4-4GAeOAldaFJ07zR7rDxfTj8" "shamir-ZDUIQPAX-11d-5-UdQ0GFesCVOFVoLpe2nzrmk" "shamir-ZDUIQPAX-11d-1-5dxDU36YEiGQmcX3tCfJlHg"
 ```
 
 We get the following output:
 
-```
-...
+``` text
 ZDUIQPAX:
 This is a secret.
 ```
@@ -66,21 +64,9 @@ Note that the order in which we supply the shares is irrelevant.
 If we try to only use shares 4 and 5, we cannot reconstruct the message, and we get gibberish:
 
 ``` text
-...
 ZDUIQPAX:
 ���l��V�1�      �u��z
 ```
-
-### QR Code Support
-
-To make distribution of shares easier in the real world, you can use the `--qr` flag to save each share as a unique QR code.
-
-### Printable SVG Support
-
-If you would like to print out the shares, use the `--print` option to create a printable SVG.
-Just be aware that this could open you up to security vulnerabilities in the printing process.
-And be sure to delete the SVG file once you print it!
-Otherwise all the shares will be in one place.
 
 ### Sharing Files
 
@@ -94,13 +80,38 @@ The secret will be saved to a file.
 The filename is `secret-<secret id>` with no extension.
 **Note that the original filename will be lost!**
 
+## Actually Distributing These Shares
+
+You can export these shares as QR codes, wallet-sized cards, text files, or on a printable sheet of paper.
+
+### QR Code Support
+
+To make distribution of shares easier in the real world, you can use the `--qr` flag to save each share as a unique QR code.
+This will produce `n` ID card sized SVGs that are easy to print.
+
+### Printable Card Support
+
+You can distribute shares as ID-card-sized cards using the `--card` flag.
+This produces an SVG for each share.
+
+### Text File Support
+
+You can save the shares to txt files using the `--file` flag.
+This way you don't have to manually copy/paste the shares from the terminal.
+
+### Printable SVG Support
+
+If you would like to print out the shares on a single sheet of paper, use the `--print` option to create a printable SVG.
+Just be aware that this could open you up to security vulnerabilities during the printing process, as all shares will be in one place.
+And be sure to delete the SVG file once you print it!
+
 ## Build Notes
 
 The following scripts are what I use to cross-compile this software.
 
 ### From Windows 11 PowerShell
 
-```
+``` powershell
 $version = "v<major>_<minor>_<patch>"
 
 $env:GOOS = "windows"; $env:GOARCH = "amd64"; $filename = "shamir-$env:GOOS-$env:GOARCH-$VERSION.exe"; go build -o $filename
