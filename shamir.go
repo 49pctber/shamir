@@ -44,6 +44,7 @@ func NewShamirSecret(primitivePoly int, nshares int, threshold int, secret []byt
 	if (primitivePoly & 0b1) != 1 {
 		return nil, errors.New("supplied polynomial cannot be primitive")
 	}
+	// TODO better checking that polynomials are actually primitive
 
 	// generate random ID for secret shares
 	idbytes := make([]byte, 5)

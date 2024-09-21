@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 	"text/template"
 
@@ -38,6 +39,24 @@ func parseInput(cmd *cobra.Command) (int, int, int, bool, bool, bool, bool) {
 	primitivePoly, err := cmd.Flags().GetInt("primitive")
 	if err != nil {
 		fmt.Println("error reading primitive polynomial")
+		invalid_command = true
+	}
+
+	// check that primitivePoly is of primitive polynomial of degree 8
+	validpolynomials := []int{
+		0b100011101,
+		0b100101011,
+		0b101011111,
+		0b101100011,
+		0b101100101,
+		0b101101001,
+		0b111000011,
+		0b111100111,
+	}
+
+	if !slices.Contains(validpolynomials, primitivePoly) {
+		fmt.Println("not a primitive polynomial of degree 8")
+		fmt.Println("choose one of the following: ", validpolynomials)
 		invalid_command = true
 	}
 
@@ -286,7 +305,7 @@ func init() {
 	rootCmd.AddCommand(distributeCmd)
 	distributeCmd.PersistentFlags().IntP("nshares", "n", 0, "number of shares to produce")
 	distributeCmd.PersistentFlags().IntP("threshold", "k", 0, "the number of shares needed to reconstruct the secret")
-	distributeCmd.PersistentFlags().IntP("primitive", "p", 0x11d, "primitive polynomial to use when constructing Galois field")
+	distributeCmd.PersistentFlags().IntP("primitive", "p", 0x11d, "primitive polynomial to use when constructing Galois field (must be of degree 8)")
 	distributeCmd.PersistentFlags().Bool("qr", false, "create PNG QR codes for each share")
 	distributeCmd.PersistentFlags().Bool("card", false, "create printable SVG cards for each share")
 	distributeCmd.PersistentFlags().Bool("file", false, "save each share in a separate txt file")
