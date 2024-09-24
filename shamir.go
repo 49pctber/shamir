@@ -96,7 +96,7 @@ func RecoverSecret(shares []Share) ([]byte, error) {
 		if i == 0 {
 			secret_id = shares[0].secret_id
 		} else {
-			if shares[1].secret_id != secret_id {
+			if shares[i].secret_id != secret_id {
 				return nil, errors.New("secret ID's don't match")
 			}
 		}
