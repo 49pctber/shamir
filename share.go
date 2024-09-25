@@ -21,7 +21,7 @@ func NewShare(secret_id string, primitivePoly int64, x GfElement, y []GfElement)
 }
 
 func NewSharesFromString(input string) ([]Share, error) {
-	r := regexp.MustCompile(`shamir-(\w+)-(\w+)-(\w+)-(.+)`)
+	r := regexp.MustCompile(`shamir-(\w+)-(\w+)-(\w+)-([\w\+\/]+)`)
 
 	shares := make([]Share, 0)
 	matches := r.FindAllStringSubmatch(input, -1)
