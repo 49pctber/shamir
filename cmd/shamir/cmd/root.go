@@ -22,7 +22,7 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"os"
+	"log"
 
 	"github.com/spf13/cobra"
 )
@@ -41,6 +41,6 @@ Having k-1 or fewer shares will provide no information about the secret other th
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
-		os.Exit(1)
+		log.Fatal(err)
 	}
 }

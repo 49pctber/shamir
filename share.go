@@ -3,7 +3,6 @@ package shamir
 import (
 	"encoding/base64"
 	"fmt"
-	"os"
 	"regexp"
 	"strconv"
 )
@@ -21,7 +20,7 @@ func NewShare(secret_id string, primitivePoly int64, x GfElement, y []GfElement)
 	return Share{secret_id: secret_id, primitivePoly: primitivePoly, x: x, y: y}
 }
 
-func NewSharesFromString(input string) []Share {
+func NewSharesFromString(input string) ([]Share, error) {
 	r := regexp.MustCompile(`shamir-(\w+)-(\w+)-(\w+)-(.+)`)
 
 	shares := make([]Share, 0)
@@ -32,20 +31,17 @@ func NewSharesFromString(input string) []Share {
 
 		primitivePoly, err := strconv.ParseInt(string(match[2]), 16, 64)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return nil, err
 		}
 
 		xdata, err := strconv.ParseInt(string(match[3]), 10, 64)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return nil, err
 		}
 
 		ydata, err := base64.RawStdEncoding.DecodeString(string(match[4]))
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return nil, err
 		}
 
 		x := GfElement(xdata)
@@ -57,7 +53,7 @@ func NewSharesFromString(input string) []Share {
 		shares = append(shares, NewShare(secret_id, primitivePoly, x, y))
 	}
 
-	return shares
+	return shares, nil
 
 }
 

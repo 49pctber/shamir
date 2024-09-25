@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -66,7 +67,7 @@ func parseInput(cmd *cobra.Command) (int, int, int, bool, bool, bool, bool) {
 	print, _ := cmd.Flags().GetBool("print")
 
 	if invalid_command {
-		os.Exit(1)
+		log.Fatal("invalid command")
 	}
 
 	return nshares, threshold, primitivePoly, qr, card, file, print
@@ -75,8 +76,7 @@ func parseInput(cmd *cobra.Command) (int, int, int, bool, bool, bool, bool) {
 func generateSecret(secret []byte, primitivePoly, nshares, threshold int) *shamir.Shamir {
 	s, err := shamir.NewShamirSecret(primitivePoly, nshares, threshold, secret)
 	if err != nil {
-		fmt.Printf("error distributing secret: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("error distributing secret: %v\n", err)
 	}
 
 	return s
@@ -274,8 +274,7 @@ var distributeFileCmd = &cobra.Command{
 
 		secret, err := os.ReadFile(args[0])
 		if err != nil {
-			fmt.Println("error reading file")
-			os.Exit(1)
+			log.Fatalf("error reading file: %v\n", err)
 		}
 
 		s := generateSecret(secret, primitivePoly, nshares, threshold)

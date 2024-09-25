@@ -8,6 +8,12 @@ import (
 	"math/rand/v2"
 )
 
+var ErrThresholdTooLarge error = errors.New("threshold cannot exceed number of shares")
+var ErrNonPrimitivePolynomial error = errors.New("supplied polynomial cannot be primitive")
+var ErrMismatchedSecretID error = errors.New("secret ID's don't match")
+var ErrInconsistentLength error = errors.New("length of shares is inconsistent")
+var ErrDuplicateShare error = errors.New("duplicate shares provided")
+
 type Shamir struct {
 	id     string  // unique identifier to ensure shares were derived from same secret
 	field  Gf2m    // field over which to operate
@@ -39,17 +45,17 @@ func NewShamirSecret(primitivePoly int, nshares int, threshold int, secret []byt
 
 	// input validation
 	if threshold > nshares {
-		return nil, errors.New("threshold cannot exceed number of shares")
+		return nil, ErrThresholdTooLarge
 	}
 	if (primitivePoly & 0b1) != 1 {
-		return nil, errors.New("supplied polynomial cannot be primitive")
+		return nil, ErrNonPrimitivePolynomial
 	}
 	// TODO better checking that polynomials are actually primitive
 
 	// generate random ID for secret shares
 	idbytes := make([]byte, 5)
 	if _, err := crand.Read(idbytes); err != nil {
-		return nil, errors.New("error reading from random source")
+		return nil, err
 	}
 
 	// initialize the data needed for Shamir's secret sharing scheme
@@ -97,14 +103,21 @@ func RecoverSecret(shares []Share) ([]byte, error) {
 			secret_id = shares[0].secret_id
 		} else {
 			if shares[i].secret_id != secret_id {
-				return nil, errors.New("secret ID's don't match")
+				return nil, ErrMismatchedSecretID
 			}
+		}
+	}
+
+	// check that shares are all same length
+	len_secret := len(shares[0].y)
+	for _, share := range shares {
+		if len(share.y) != len_secret {
+			return nil, ErrInconsistentLength
 		}
 	}
 
 	// initialize data
 	field := NewField(int(shares[0].GetPrimitivePoly()))
-	len_secret := len(shares[0].y)
 	n_shares := len(shares)
 	secret := make([]byte, len_secret)
 
@@ -112,7 +125,7 @@ func RecoverSecret(shares []Share) ([]byte, error) {
 	existingxs := make(map[GfElement]any, 0)
 	for s, share := range shares {
 		if _, ok := existingxs[share.x]; ok {
-			return nil, errors.New("duplicate shares provided")
+			return nil, ErrDuplicateShare
 		}
 		x[s] = share.x
 		existingxs[share.x] = nil

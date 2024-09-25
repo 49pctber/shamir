@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,8 +28,7 @@ var reconstructFileCmd = &cobra.Command{
 
 		dir, err := cmd.Flags().GetString("directory")
 		if err != nil {
-			fmt.Println("error specifying input directory")
-			os.Exit(1)
+			log.Fatalf("error specifying input directory: %v\n", err)
 		}
 
 		dir, err = filepath.Abs(dir)
@@ -60,18 +60,22 @@ var reconstructFileCmd = &cobra.Command{
 				return err
 			}
 
-			shares = append(shares, shamir.NewSharesFromString(string(data))...)
+			new_shares, err := shamir.NewSharesFromString(string(data))
+			if err != nil {
+				return err
+			}
+
+			shares = append(shares, new_shares...)
 
 			return nil
 		})
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			log.Fatal(err)
 		}
 
 		if len(shares) == 0 {
 			fmt.Println("No shares found. Exiting.")
-			os.Exit(0)
+			return
 		} else {
 			fmt.Printf("Found %d shares.\n", len(shares))
 		}
@@ -90,21 +94,18 @@ var reconstructFileCmd = &cobra.Command{
 		for id, shares := range secretDict {
 			secret, err := shamir.RecoverSecret(shares)
 			if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
+				log.Fatal(err)
 			}
 
 			fname := "secret-" + id
 			abs, err := filepath.Abs(fname)
 			if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
+				log.Fatal(err)
 			}
 
 			err = os.WriteFile(fname, secret, 0700)
 			if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
+				log.Fatal(err)
 			}
 
 			fmt.Printf("Secret %s saved to %s\n", id, abs)
@@ -121,12 +122,17 @@ var reconstructStringCmd = &cobra.Command{
 		shares := make([]shamir.Share, 0)
 
 		for _, arg := range args {
-			shares = append(shares, shamir.NewSharesFromString(arg)...)
+			new_shares, err := shamir.NewSharesFromString(arg)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			shares = append(shares, new_shares...)
 		}
 
 		if len(shares) == 0 {
 			fmt.Println("No valid shares specified. Exiting.")
-			os.Exit(0)
+			return
 		}
 
 		secretDict := make(map[string][]shamir.Share, 0)
@@ -144,8 +150,7 @@ var reconstructStringCmd = &cobra.Command{
 		for id, shares := range secretDict {
 			secret, err := shamir.RecoverSecret(shares)
 			if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
+				log.Fatal(err)
 			}
 			fmt.Printf("%s:\n%s\n", id, secret)
 		}

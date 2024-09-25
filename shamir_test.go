@@ -2,6 +2,7 @@ package shamir
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 )
 
@@ -113,5 +114,38 @@ func TestShamir_2(t *testing.T) {
 	_, err = RecoverSecret(append(shamir.shares[0:2], shamir.shares[0:2]...))
 	if err == nil {
 		t.Fatal("should have thrown an error with same shares multiple times")
+	}
+}
+
+func TestShamirErrors(t *testing.T) {
+	share3 := "shamir-7SPFLJYT-11d-3-xYSJU5oTyQcNZHs9SvY"
+	share4 := "shamir-7SPFLJYT-11d-4-fu7/+G46PVTx0GBOL5E"
+	share4_2 := "shamir-7SPFLJYT-11d-4-fu7/+G46PVTx0GBOL5Efu7/+G46PVTx0GBOL5E"
+
+	want := "This is a test"
+
+	input := strings.Join([]string{share3, share4}, "\n")
+	shares, err := NewSharesFromString(input)
+	if err != nil {
+		t.Errorf("error parsing shares: %v\n", err)
+	}
+
+	have, err := RecoverSecret(shares)
+	if err != nil {
+		t.Errorf("should have reconstructed secret properly: %v\n", err)
+	}
+	if string(have) != want {
+		t.Errorf("error reconstructing secret. Have %s, want %s.", have, want)
+	}
+
+	input = strings.Join([]string{share3, share4_2}, "\n")
+	shares, err = NewSharesFromString(input)
+	if err != nil {
+		t.Errorf("error parsing shares: %v\n", err)
+	}
+
+	_, err = RecoverSecret(shares)
+	if err == nil {
+		t.Errorf("should have thrown error\n")
 	}
 }
